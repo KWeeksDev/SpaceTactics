@@ -22,6 +22,11 @@ public class Ship : MonoBehaviour
         Total
     };
 
+    public bool isSelected = false; // In future we'll have different behaviour depending which player is selecting the ship
+    private Renderer rend;
+    private Shader shaderStandard;
+    private Shader shaderOutline; 
+
     private ShipSize mSize;
     private float mRotationRate;
 
@@ -36,16 +41,20 @@ public class Ship : MonoBehaviour
     public float currentTime;
     
     public Quaternion endRotation = Quaternion.identity;
-	
+    
     // Use this for initialization
-	void Start ()
+    void Start ()
     {
         mSize = ShipSize.Small;
-	}
-	
-	// Update is called once per frame
-	void Update ()
-    {
+        shaderStandard  = Shader.Find("Standard");
+        shaderOutline = Shader.Find("Custom/Silhouette-Outline");
+        rend = GetComponent<Renderer>();
+        rend.material.shader = shaderStandard;
+    }
+    
+    // Update is called once per frame
+    void Update ()
+    {     
         if (isShipMoving)
         {
             // update time
@@ -61,10 +70,8 @@ public class Ship : MonoBehaviour
             transform.position = Mathf.Pow(1 - percent, 2) * startPoint + 2 * (1 - percent) * percent * midPoint + Mathf.Pow(percent, 2) * endPoint;
             // lerp rotation
             transform.rotation = Quaternion.RotateTowards(transform.rotation, endRotation, mRotationRate * Time.deltaTime);
-
         }
     }
-
 
     private void InitializeMove(Vector3 endVector, float softness, Vector3 rotationVector)
     {
@@ -105,4 +112,32 @@ public class Ship : MonoBehaviour
         mRotationRate = 0f;
         InitializeMove(transform.forward, 0f, new Vector3(0f, 0f, 0f));
     }
+
+	// Modifies this object when selected by a player
+	public void Select()
+	{
+		if (isSelected == true)
+		{
+			Debug.Log("Ship is already selected");
+			return;
+		}
+
+		isSelected = true;
+
+		rend.material.shader = shaderOutline;
+	}
+
+	public void Deselect()
+	{
+		if(isSelected == false)
+		{
+			Debug.Log("Ship is already unselected");
+			return;
+		}
+
+		isSelected = false;
+
+		rend.material.shader = shaderStandard;
+
+	}
 }
