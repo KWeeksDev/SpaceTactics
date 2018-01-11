@@ -16,104 +16,100 @@ public class Ship : MonoBehaviour
 
     public enum ShipSize
     {
-        Small = 3,
+        Small = 1,
         Medium = 5,
         Large  = 7,
         Total
     };
 
+    // Public Interface for the game manager
+    public Player   shipOwner;
+    public bool     movementSelected;
+    public List<Movement> mShipMoves;
+    public int mMovementIndex = 0;
+    
     public bool isSelected = false; // In future we'll have different behaviour depending which player is selecting the ship
     private Renderer rend;
     private Shader shaderStandard;
     private Shader shaderOutline; 
 
-    private ShipSize mSize;
+    public ShipSize mSize;
     private float mRotationRate;
 
     // Ship Movement values
     public bool isShipMoving = false;
     public TurnType currentTurn;
     public int shipSpeed = 1;
-    public Vector3 startPoint;
-    public Vector3 midPoint;
-    public Vector3 endPoint;
-    public float lerpTime = 1f;
-    public float currentTime;
-    
-    public Quaternion endRotation = Quaternion.identity;
-    
+
     // Use this for initialization
     void Start ()
     {
         mSize = ShipSize.Small;
-        shaderStandard  = Shader.Find("Standard");
-        shaderOutline = Shader.Find("Custom/Silhouette-Outline");
-        rend = GetComponent<Renderer>();
-        rend.material.shader = shaderStandard;
+
+        // Temp block to initialize the test moves this ship will have
+        mShipMoves = new List<Movement>()
+        {
+        //hard left
+        new Movement(this, "Hard Left 2 Speed", -transform.right, new Vector3(0f, -90f, 0f), 1f, 90f, 2f),
+        //hard right
+        new Movement(this, "Hard Right 2 Speed", transform.right, new Vector3(0f, 90f, 0f), 1f, 90f, 2f),
+        // soft left
+        new Movement(this, "Soft Left 2 Speed", -transform.right, new Vector3(0f, 45f, 0f), .5f, 45f, 2f),
+        // soft right
+        new Movement(this, "Soft Right 2 Speed", transform.right, new Vector3(0f, 45f, 0f), .5f, 45f, 2f),
+        // straight
+        new Movement(this, "Straight 2 Speed", transform.forward, new Vector3(0f, 0f, 0f), 0f, 0f, 2f)
+        };
+
+
     }
-    
+
     // Update is called once per frame
-    void Update ()
-    {     
+    void Update()
+    {
         if (isShipMoving)
         {
-            // update time
-            currentTime += Time.deltaTime;
-            if (currentTime >= lerpTime)
-            {
-                currentTime = lerpTime;
-                isShipMoving = false;
-            }
-
-            float percent = currentTime / lerpTime;
-            // lerp position
-            transform.position = Mathf.Pow(1 - percent, 2) * startPoint + 2 * (1 - percent) * percent * midPoint + Mathf.Pow(percent, 2) * endPoint;
-            // lerp rotation
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, endRotation, mRotationRate * Time.deltaTime);
+            mShipMoves[mMovementIndex].Move();
         }
-    }
-
-    private void InitializeMove(Vector3 endVector, float softness, Vector3 rotationVector)
-    {
-        startPoint = transform.position;
-        midPoint = startPoint + (transform.forward * (int)mSize * shipSpeed);
-        endPoint = midPoint + (endVector * (int)mSize * shipSpeed * softness);
-        endRotation = Quaternion.Euler(transform.rotation.eulerAngles + rotationVector);
-        currentTime = 0f;
-        isShipMoving = true;
     }
 
     public void MoveHardLeft()
     {
-        mRotationRate = 90f;
-        InitializeMove(-transform.right, 1f, new Vector3(0f, -90f, 0f));
+        mMovementIndex = 0;
+        mShipMoves[mMovementIndex].InitializeMove();
     }
 
     public void MoveHardRight()
     {
-        mRotationRate = 90f;
-        InitializeMove(transform.right, 1f, new Vector3(0f, 90f, 0f));
+        mMovementIndex = 1;
+        mShipMoves[mMovementIndex].InitializeMove();
     }
 
     public void MoveSoftLeft()
     {
-        mRotationRate = 45f;
-        InitializeMove(-transform.right + transform.forward, .5f, new Vector3(0f, -45f, 0f));
+        mMovementIndex = 2;
+        mShipMoves[mMovementIndex].InitializeMove();
     }
 
     public void MoveSoftRight()
     {
-        mRotationRate = 45f;
-        InitializeMove(transform.right + transform.forward, .5f, new Vector3(0f, 45f, 0f));
+        mMovementIndex = 3;
+        mShipMoves[mMovementIndex].InitializeMove();
     }
 
     public void MoveStraight()
     {
-        mRotationRate = 0f;
-        InitializeMove(transform.forward, 0f, new Vector3(0f, 0f, 0f));
+        mMovementIndex = 4;
+        mShipMoves[mMovementIndex].InitializeMove();
     }
 
-	// Modifies this object when selected by a player
+    public void SetRotationRate(float rate)
+    {
+        mRotationRate = rate;
+    }
+
+    // Handles when a ship is selected by the player
+    // Later will handle ships being selected by opponents
 	public void Select()
 	{
 		if (isSelected == true)
@@ -123,8 +119,6 @@ public class Ship : MonoBehaviour
 		}
 
 		isSelected = true;
-
-		rend.material.shader = shaderOutline;
 	}
 
 	public void Deselect()
@@ -136,8 +130,6 @@ public class Ship : MonoBehaviour
 		}
 
 		isSelected = false;
-
-		rend.material.shader = shaderStandard;
 
 	}
 }
