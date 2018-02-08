@@ -23,45 +23,51 @@ public class Ship : MonoBehaviour
     };
 
     // Public Interface for the game manager
-    public Player   shipOwner;
-    public bool     movementSelected;
-    public List<Movement> mShipMoves;
-    public int mMovementIndex = 0;
-    
-    public bool isSelected = false; // In future we'll have different behaviour depending which player is selecting the ship
-    private Renderer rend;
-    private Shader shaderStandard;
-    private Shader shaderOutline; 
+    public GameManager      mGameManager;
+    public ShipManager      mShipManager;
+    public Player           shipOwner;
+    public ShipSize         mSize;
+    public List<Movement>   mShipMoves;
+    public List<Weapon>     mWeapons;
+    public Dictionary<int, List<Ship>> shipsInRange;
+    public bool             movementSelected;
+    public int              mMovementIndex = 0;
+    private int maxRange = 3;
+    public float              pilotSkill;
 
-    public ShipSize mSize;
-    private float mRotationRate;
+    // Interactive values that will change as the game goes on
+    public int shield;
+    public int hull;
+    // In future we'll have different behaviour depending which player is selecting the ship
+    public bool             isSelected = false; 
 
     // Ship Movement values
     public bool isShipMoving = false;
-    public TurnType currentTurn;
-    public int shipSpeed = 1;
 
     // Use this for initialization
     void Start ()
     {
+        movementSelected = false;
         mSize = ShipSize.Small;
+        shipsInRange = new Dictionary<int, List<Ship>>();
+        shipsInRange.Add(1, new List<Ship>());
+        shipsInRange.Add(2, new List<Ship>());
+        shipsInRange.Add(3, new List<Ship>());
 
         // Temp block to initialize the test moves this ship will have
         mShipMoves = new List<Movement>()
         {
-        //hard left
-        new Movement(this, "Hard Left 2 Speed", -transform.right, new Vector3(0f, -90f, 0f), 1f, 90f, 2f),
-        //hard right
-        new Movement(this, "Hard Right 2 Speed", transform.right, new Vector3(0f, 90f, 0f), 1f, 90f, 2f),
-        // soft left
-        new Movement(this, "Soft Left 2 Speed", -transform.right, new Vector3(0f, 45f, 0f), .5f, 45f, 2f),
-        // soft right
-        new Movement(this, "Soft Right 2 Speed", transform.right, new Vector3(0f, 45f, 0f), .5f, 45f, 2f),
-        // straight
-        new Movement(this, "Straight 2 Speed", transform.forward, new Vector3(0f, 0f, 0f), 0f, 0f, 2f)
+            //hard left
+            new Movement(this, "Hard Left 1 Speed", -transform.right, new Vector3(0f, -90f, 0f), 1f, 90f, 1f),
+            //hard right
+            new Movement(this, "Hard Right 1 Speed", transform.right, new Vector3(0f, 90f, 0f), 1f, 90f, 1f),
+            // soft left
+            new Movement(this, "Soft Left 1 Speed", -transform.right, new Vector3(0f, -45f, 0f), .5f, 45f, 1f),
+            // soft right
+            new Movement(this, "Soft Right 1 Speed", transform.right, new Vector3(0f, 45f, 0f), .5f, 45f, 1f),
+            // straight
+            new Movement(this, "Straight 1 Speed", transform.forward, new Vector3(0f, 0f, 0f), 0f, 0f, 1f)
         };
-
-
     }
 
     // Update is called once per frame
@@ -73,63 +79,68 @@ public class Ship : MonoBehaviour
         }
     }
 
-    public void MoveHardLeft()
+    // Will be called by the button when the ship's movement has been selected
+    public void AssignMovement(int idx)
     {
-        mMovementIndex = 0;
-        mShipMoves[mMovementIndex].InitializeMove();
+        mMovementIndex = idx;
+        if (!movementSelected)
+        {
+            movementSelected = true;
+            mShipManager.ShipAssignedMove();
+        }
     }
 
-    public void MoveHardRight()
+    // Will be called on all ships once everyone has a movement assigned
+    public void StartMovement()
     {
-        mMovementIndex = 1;
+        movementSelected = false;
         mShipMoves[mMovementIndex].InitializeMove();
-    }
-
-    public void MoveSoftLeft()
-    {
-        mMovementIndex = 2;
-        mShipMoves[mMovementIndex].InitializeMove();
-    }
-
-    public void MoveSoftRight()
-    {
-        mMovementIndex = 3;
-        mShipMoves[mMovementIndex].InitializeMove();
-    }
-
-    public void MoveStraight()
-    {
-        mMovementIndex = 4;
-        mShipMoves[mMovementIndex].InitializeMove();
-    }
-
-    public void SetRotationRate(float rate)
-    {
-        mRotationRate = rate;
     }
 
     // Handles when a ship is selected by the player
     // Later will handle ships being selected by opponents
-	public void Select()
-	{
-		if (isSelected == true)
-		{
-			Debug.Log("Ship is already selected");
-			return;
-		}
+    public void Select()
+    {
+        if (isSelected == true)
+        {
+            Debug.Log("Ship is already selected");
+            return;
+        }
 
-		isSelected = true;
-	}
+        isSelected = true;
+    }
 
-	public void Deselect()
-	{
-		if(isSelected == false)
-		{
-			Debug.Log("Ship is already unselected");
-			return;
-		}
+    public void Deselect()
+    {
+        if (isSelected == false)
+        {
+            Debug.Log("Ship is already unselected");
+            return;
+        }
 
-		isSelected = false;
+        isSelected = false;
+    }
 
-	}
+    public void AddShipInRange(Ship other, int range)
+    {
+        if (range < maxRange)
+        {
+            Debug.Log("Removing Ship: " + other.name + " at Range: " + (range+1));
+            shipsInRange[range + 1].Remove(other);
+        }
+        
+        Debug.Log("Adding Ship: " + other.name + " at Range: " + range);
+        shipsInRange[range].Add(other);
+    }
+
+    public void RemoveShipInRange(Ship other, int range)
+    {
+        if (range < maxRange)
+        {
+            Debug.Log("Adding Ship: " + other.name + " at Range: " + (range+1));
+            shipsInRange[range + 1].Add(other);
+        }
+        Debug.Log("Removing Ship: " + other.name + " at Range: " + range);
+        shipsInRange[range].Remove(other);
+    }
 }

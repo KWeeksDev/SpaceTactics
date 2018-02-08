@@ -57,8 +57,8 @@ public class Movement
     public void InitializeMove()
     {
         startPoint = mShip.transform.position;
-        midPoint = startPoint + (mShip.transform.forward * (int)mShip.mSize * moveSpeed);
-        endPoint = midPoint + (endDirection * (int)mShip.mSize * moveSpeed * turnSoftness);
+        midPoint = startPoint + (mShip.transform.forward * (int)mShip.mSize * (1 + moveSpeed));
+        endPoint = midPoint + (endDirection * (int)mShip.mSize * (1 + moveSpeed) * turnSoftness);
         endRotation = Quaternion.Euler(mShip.transform.rotation.eulerAngles + rotation);
         currentTime = 0f;
         mShip.isShipMoving = true;
